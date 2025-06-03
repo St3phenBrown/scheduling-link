@@ -2,7 +2,7 @@
  * api/deal-info.js
  *
  * - Forces no caching (Cache-Control: no-store) so we never get 304.
- * - Logs the raw HubSpot response to Vercel logs for debugging.
+ * - Logs the entire HubSpot API response to Vercel logs for debugging.
  * - Returns only the three date_offered_# properties (or null).
  */
 
@@ -13,7 +13,7 @@ module.exports = async (req, res) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Cache-Control", "no-store");           // disable caching
+  res.setHeader("Cache-Control", "no-store"); // disable caching
 
   // Handle preflight OPTIONS
   if (req.method === "OPTIONS") {
@@ -54,8 +54,8 @@ module.exports = async (req, res) => {
         try {
           const parsed = JSON.parse(rawData);
 
-          // Log raw properties to Vercel logs so you can inspect them
-          console.log(">>> HubSpot response properties:", parsed.properties);
+          // ─── Log the entire HubSpot response for debugging ─────────────────────
+          console.log(">>> HubSpot full API response:", JSON.stringify(parsed, null, 2));
 
           const props = parsed.properties || {};
           return res.status(200).json({
@@ -76,4 +76,3 @@ module.exports = async (req, res) => {
       return res.status(500).json({ error: "HubSpot API request failed", details: err.message });
     });
 };
-console.log('>>> HubSpot raw API response:', data);
