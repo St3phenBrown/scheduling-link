@@ -1,38 +1,38 @@
 /**
  * api/deal-info.js
  *
- * - Forces no caching (Cache-Control: no-store) so we never get 304.
- * - Logs the entire HubSpot API response to Vercel logs for debugging.
- * - Returns only the three date_offered_# properties (or null).
+ * - CORS + No-Cache headers
+ * - Logs the entire HubSpot API response for debugging
+ * - Returns only date_offered_1, date_offered_2, date_offered_3
  */
 
 const https = require("https");
 
 module.exports = async (req, res) => {
-  // ── 1) CORS + No‐Cache Headers ─────────────────────────────────────────────
+  // 1) CORS + No-Cache
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Cache-Control", "no-store"); // disable caching
+  res.setHeader("Cache-Control", "no-store");
 
   // Handle preflight OPTIONS
   if (req.method === "OPTIONS") {
     return res.status(204).end();
   }
 
-  // ── 2) Validate dealId ────────────────────────────────────────────────────
+  // 2) Validate dealId
   const dealId = req.query.dealid;
   if (!dealId) {
     return res.status(400).json({ error: "Missing dealId query parameter" });
   }
 
-  // ── 3) Read HubSpot token from environment ─────────────────────────────────
+  // 3) Check for HubSpot token
   const HUBSPOT_TOKEN = process.env.HUBSPOT_TOKEN;
   if (!HUBSPOT_TOKEN) {
     return res.status(500).json({ error: "Missing HUBSPOT_TOKEN environment var" });
   }
 
-  // ── 4) Build HTTPS GET options ─────────────────────────────────────────────
+  // 4) Build HubSpot API request
   const options = {
     hostname: "api.hubapi.com",
     path:
@@ -45,7 +45,7 @@ module.exports = async (req, res) => {
     },
   };
 
-  // ── 5) Fetch from HubSpot ──────────────────────────────────────────────────
+  // 5) Fetch from HubSpot
   https
     .get(options, (hubRes) => {
       let rawData = "";
@@ -54,7 +54,7 @@ module.exports = async (req, res) => {
         try {
           const parsed = JSON.parse(rawData);
 
-          // ─── Log the entire HubSpot response for debugging ─────────────────────
+          // Log the full response for debugging
           console.log(">>> HubSpot full API response:", JSON.stringify(parsed, null, 2));
 
           const props = parsed.properties || {};
