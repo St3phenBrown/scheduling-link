@@ -1,0 +1,105 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Select a Date</title>
+  <meta charset="UTF-8" />
+  <script>
+    async function loadDates() {
+      const params = new URLSearchParams(window.location.search);
+      const dealId = params.get('dealid');
+      if (!dealId) {
+        document.getElementById("dates").innerHTML = "No deal ID provided.";
+        return;
+      }
+
+      const url = `https://scheduling-link-correct-time.vercel.app/api/deal-info?dealid=${dealId}`;
+      console.log("Fetching available dates from:", url);
+
+      try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error("Network response was not ok");
+        const data = await response.json();
+
+        const container = document.getElementById("dates");
+        container.innerHTML = '';
+
+        ['date_offered_1', 'date_offered_2', 'date_offered_3'].forEach((key, index) => {
+          const dateValue = data[key];
+          if (dateValue) {
+            const dateStr = new Date(dateValue).toISOString().split('T')[0]; // Just the date
+            const btn = document.createElement("button");
+            btn.innerText = dateStr;
+            btn.onclick = () => submitSelection(key);
+            container.appendChild(btn);
+            container.appendChild(document.createElement("br"));
+          }
+        });
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.id = "noDates";
+        checkbox.onchange = () => {
+          document.getElementById("commentsBox").style.display = checkbox.checked ? "block" : "none";
+        };
+
+        const label = document.createElement("label");
+        label.htmlFor = "noDates";
+        label.innerText = "None of these dates work for me";
+
+        const comments = document.createElement("textarea");
+        comments.id = "comments";
+        comments.placeholder = "Please enter preferred dates";
+        commentsBox = document.createElement("div");
+        commentsBox.id = "commentsBox";
+        commentsBox.style.display = "none";
+        commentsBox.appendChild(comments);
+
+        const submitBtn = document.createElement("button");
+        submitBtn.innerText = "Submit Comment";
+        submitBtn.onclick = () => submitSelection("none");
+
+        container.appendChild(checkbox);
+        container.appendChild(label);
+        container.appendChild(commentsBox);
+        container.appendChild(submitBtn);
+
+      } catch (error) {
+        document.getElementById("dates").innerHTML = "Error loading date options.";
+        console.error("✖ Error loading date options:", error);
+      }
+    }
+
+    async function submitSelection(selectedProperty) {
+      const params = new URLSearchParams(window.location.search);
+      const dealId = params.get('dealid');
+      const comments = document.getElementById("comments")?.value || "";
+
+      const payload = {
+        dealId,
+        selectedProperty,
+        comments
+      };
+
+      try {
+        const response = await fetch("https://hooks.zapier.com/hooks/catch/6263073/2vtpd0d/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (!response.ok) throw new Error("Failed to submit");
+        alert("Thank you! Your response has been submitted.");
+      } catch (err) {
+        console.error("✖ Date submission error:", err);
+        alert("Error submitting. Contact support.");
+      }
+    }
+
+    window.onload = loadDates;
+  </script>
+</head>
+<body>
+  <h1>Please select a date</h1>
+  <div id="dates">Loading...</div>
+</body>
+</html>
