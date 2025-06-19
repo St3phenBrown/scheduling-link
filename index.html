@@ -60,25 +60,36 @@
         if (data.expiration_date) {
           const expirationDate = new Date(data.expiration_date);
 
-          // Match the handling used for date_offered_# — assume date is always in UTC and just split by T
-          const expirationDateOnly = data.expiration_date.split("T")[0];
-          const todayDateOnly = new Date().toISOString().split("T")[0];
+          // Convert to US Eastern Time (with daylight saving)
+          const estFormatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: 'America/New_York',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+          });
 
-          const formatted = new Date(expirationDateOnly).toLocaleDateString('en-US', {
+          const todayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
+          const expirationParts = estFormatter.formatToParts(expirationDate);
+          const formatted = expirationParts.map(p => p.value).join('');
+
+          const expLocalDate = todayFormatter.format(expirationDate);
+          const todayLocalDate = todayFormatter.format(new Date());
+
+          const readableFormatted = new Date(expLocalDate).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           });
 
-          if (expirationDateOnly === todayDateOnly) {
+          if (expLocalDate === todayLocalDate) {
             expirationEl.classList.add("warning");
-            expirationEl.innerText = `⚠️ These date options expire TODAY (${formatted}). Please respond immediately.`;
-          } else if (expirationDateOnly < todayDateOnly) {
+            expirationEl.innerText = `⚠️ These date options expire TODAY (${readableFormatted}). Please respond immediately.`;
+          } else if (expLocalDate < todayLocalDate) {
             expirationEl.classList.add("expired");
-            expirationEl.innerText = `❌ These date options have expired (${formatted}). Please contact your rep to request new dates.`;
+            expirationEl.innerText = `❌ These date options have expired (${readableFormatted}). Please contact your rep to request new dates.`;
             expired = true;
           } else {
-            expirationEl.innerText = `These date options expire on ${formatted}.`;
+            expirationEl.innerText = `These date options expire on ${readableFormatted}.`;
           }
         } else {
           expirationEl.style.display = "none";
