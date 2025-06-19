@@ -1,115 +1,54 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Select Your Date</title>
-  <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    button { margin: 8px 4px; padding: 10px 20px; font-size: 16px; cursor: pointer; }
-    #commentsBox { margin-top: 12px; display: none; }
-    textarea { width: 100%; max-width: 400px; height: 80px; }
-    #status { margin-top: 16px; color: red; }
-  </style>
-  <script>
-    // On page load, fetch the three offered dates and render them as buttons.
-    async function loadDates() {
-      const params = new URLSearchParams(window.location.search);
-      const dealId = params.get("dealid");
-      if (!dealId) {
-        document.getElementById("dates").innerText = "Missing deal ID.";
-        return;
-      }
+let expired = false;
 
-      const url = `/api/deal-info?dealid=${dealId}`; // same-origin
-      console.log("Fetching available dates from:", url);
+// --- EXPIRATION SECTION ---
+const expirationEl = document.getElementById("expiration");
+if (data.expiration_date) {
+  const expirationDate = new Date(data.expiration_date);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const expNormalized = new Date(expirationDate);
+  expNormalized.setHours(0, 0, 0, 0);
 
-      try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Network response was not ok");
-        const data = await response.json();
+  const formatted = expirationDate.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
 
-        const container = document.getElementById("dates");
-        container.innerHTML = "";
+  if (expNormalized.getTime() === today.getTime()) {
+    expirationEl.classList.add("warning");
+    expirationEl.innerText = `⚠️ These date options expire TODAY (${formatted}). Please respond immediately.`;
+  } else if (expNormalized.getTime() < today.getTime()) {
+    expirationEl.classList.add("expired");
+    expirationEl.innerText = `❌ These date options have expired (${formatted}). Please contact your rep to request new dates.`;
+    expired = true;
+  } else {
+    expirationEl.innerText = `These date options expire on ${formatted}.`;
+  }
+} else {
+  expirationEl.style.display = "none";
+}
 
-        // For each date_offered_#, if it exists, render a button showing YYYY-MM-DD.
-        ["date_offered_1", "date_offered_2", "date_offered_3"].forEach((key) => {
-          const val = data[key];
-          if (val) {
-            // HubSpot returns a timestamp string (e.g. "2025-06-15T00:00:00Z").
-            // We only need the date portion: YYYY-MM-DD
-            const dateOnly = val.split("T")[0];
-            const btn = document.createElement("button");
-            btn.innerText = dateOnly;
-            btn.onclick = () => submitSelection(key, dealId);
-            container.appendChild(btn);
-          }
-        });
+// --- DATE SELECTION BUTTONS ---
+const container = document.getElementById("dates");
+container.innerHTML = "";
 
-        // "None of these work" checkbox + comments area
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.id = "noneCheckbox";
-        checkbox.onchange = () => {
-          document.getElementById("commentsBox").style.display =
-            checkbox.checked ? "block" : "none";
-        };
-        container.appendChild(checkbox);
+["date_offered_1", "date_offered_2", "date_offered_3"].forEach((key) => {
+  const val = data[key];
+  if (val) {
+    const dateOnly = val.split("T")[0];
+    const btn = document.createElement("button");
+    btn.innerText = dateOnly;
 
-        const label = document.createElement("label");
-        label.htmlFor = "noneCheckbox";
-        label.innerText = " None of these dates work";
-        container.appendChild(label);
-
-        const commentsBox = document.createElement("div");
-        commentsBox.id = "commentsBox";
-        commentsBox.style.display = "none";
-
-        const comments = document.createElement("textarea");
-        comments.id = "comments";
-        comments.placeholder = "Enter your preferred dates...";
-        commentsBox.appendChild(comments);
-
-        const submitBtn = document.createElement("button");
-        submitBtn.innerText = "Submit Preferences";
-        submitBtn.onclick = () => submitSelection("none", dealId);
-        commentsBox.appendChild(submitBtn);
-
-        container.appendChild(commentsBox);
-      } catch (err) {
-        console.error("✖ Error loading date options:", err);
-        document.getElementById("dates").innerText = "Error loading date options.";
-      }
+    if (expired) {
+      btn.disabled = true;
+      btn.title = "These dates have expired.";
+      btn.style.opacity = 0.5;
+      btn.style.cursor = "not-allowed";
+    } else {
+      btn.onclick = () => submitSelection(key, dealId);
     }
 
-    // Called when a date button is clicked or user submits fallback.
-    async function submitSelection(selectedProperty, dealId) {
-      const payload = { dealId, selectedProperty };
-      if (selectedProperty === "none") {
-        payload.customerComment = document.getElementById("comments").value.trim();
-      }
-
-      try {
-        const response = await fetch("/api/submit-scheduler", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        if (!response.ok) throw new Error("Failed to submit");
-        alert("Thank you! Your selection has been submitted.");
-        window.location.reload();
-      } catch (err) {
-        console.error("✖ Submission error:", err);
-        document.getElementById("status").innerText = "Error submitting. Contact support.";
-      }
-    }
-
-    window.onload = loadDates;
-  </script>
-</head>
-<body>
-  <h1>Please select a date</h1>
-  <div id="dates">Loading...</div>
-  <p id="status"></p>
-</body>
-</html>
+    container.appendChild(btn);
+  }
+});
