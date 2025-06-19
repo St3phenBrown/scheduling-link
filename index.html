@@ -58,25 +58,22 @@
         let expired = false;
         const expirationEl = document.getElementById("expiration");
         if (data.expiration_date) {
-          // Convert UTC to EST (Eastern Time)
-          const utcDate = new Date(data.expiration_date);
-          const estOffset = -5 * 60; // EST is UTC-5 in minutes
-          const estDate = new Date(utcDate.getTime() + estOffset * 60 * 1000);
+          const expirationDate = new Date(data.expiration_date);
 
-          const today = new Date();
-          today.setHours(0, 0, 0, 0);
-          estDate.setHours(0, 0, 0, 0);
+          // Match the handling used for date_offered_# — assume date is always in UTC and just split by T
+          const expirationDateOnly = data.expiration_date.split("T")[0];
+          const todayDateOnly = new Date().toISOString().split("T")[0];
 
-          const formatted = estDate.toLocaleDateString('en-US', {
+          const formatted = new Date(expirationDateOnly).toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           });
 
-          if (estDate.getTime() === today.getTime()) {
+          if (expirationDateOnly === todayDateOnly) {
             expirationEl.classList.add("warning");
             expirationEl.innerText = `⚠️ These date options expire TODAY (${formatted}). Please respond immediately.`;
-          } else if (estDate.getTime() < today.getTime()) {
+          } else if (expirationDateOnly < todayDateOnly) {
             expirationEl.classList.add("expired");
             expirationEl.innerText = `❌ These date options have expired (${formatted}). Please contact your rep to request new dates.`;
             expired = true;
