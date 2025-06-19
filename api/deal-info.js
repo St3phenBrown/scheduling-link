@@ -59,10 +59,11 @@ module.exports = async (req, res) => {
 
           const props = parsed.properties || {};
           return res.status(200).json({
-            date_offered_1: props.date_offered_1 || null,
-            date_offered_2: props.date_offered_2 || null,
-            date_offered_3: props.date_offered_3 || null,
-          });
+  date_offered_1: props.date_offered_1 || null,
+  date_offered_2: props.date_offered_2 || null,
+  date_offered_3: props.date_offered_3 || null,
+  expiration_date: props.expiration_date || null,
+});
         } catch (err) {
           console.error("Error parsing HubSpot JSON:", err);
           return res
