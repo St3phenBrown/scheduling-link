@@ -37,7 +37,7 @@ module.exports = async (req, res) => {
     hostname: "api.hubapi.com",
     path:
       `/crm/v3/objects/deals/${dealId}` +
-      `?properties=date_offered_1,date_offered_2,date_offered_3`,
+      `?properties=date_offered_1,date_offered_2,date_offered_3,expiration_date`,
     method: "GET",
     headers: {
       Authorization: `Bearer ${HUBSPOT_TOKEN}`,
