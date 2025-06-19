@@ -58,38 +58,34 @@
         let expired = false;
         const expirationEl = document.getElementById("expiration");
         if (data.expiration_date) {
-          const expirationDate = new Date(data.expiration_date);
+          // Use HubSpot UTC date and interpret it as midnight Eastern Time
+          const expirationUTC = new Date(data.expiration_date);
+          const expirationET = new Date(
+            expirationUTC.toLocaleString('en-US', { timeZone: 'America/New_York' })
+          );
 
-          // Convert to US Eastern Time (with daylight saving)
-          const estFormatter = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/New_York',
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit'
-          });
+          const todayET = new Date(
+            new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
+          );
 
-          const todayFormatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/New_York' });
-          const expirationParts = estFormatter.formatToParts(expirationDate);
-          const formatted = expirationParts.map(p => p.value).join('');
+          expirationET.setHours(0, 0, 0, 0);
+          todayET.setHours(0, 0, 0, 0);
 
-          const expLocalDate = todayFormatter.format(expirationDate);
-          const todayLocalDate = todayFormatter.format(new Date());
-
-          const readableFormatted = new Date(expLocalDate).toLocaleDateString('en-US', {
+          const formatted = expirationET.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           });
 
-          if (expLocalDate === todayLocalDate) {
+          if (expirationET.getTime() === todayET.getTime()) {
             expirationEl.classList.add("warning");
-            expirationEl.innerText = `⚠️ These date options expire TODAY (${readableFormatted}). Please respond immediately.`;
-          } else if (expLocalDate < todayLocalDate) {
+            expirationEl.innerText = `⚠️ These date options expire TODAY (${formatted}). Please respond immediately.`;
+          } else if (expirationET.getTime() < todayET.getTime()) {
             expirationEl.classList.add("expired");
-            expirationEl.innerText = `❌ These date options have expired (${readableFormatted}). Please contact your rep to request new dates.`;
+            expirationEl.innerText = `❌ These date options have expired (${formatted}). Please contact your rep to request new dates.`;
             expired = true;
           } else {
-            expirationEl.innerText = `These date options expire on ${readableFormatted}.`;
+            expirationEl.innerText = `These date options expire on ${formatted}.`;
           }
         } else {
           expirationEl.style.display = "none";
