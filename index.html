@@ -58,29 +58,23 @@
         let expired = false;
         const expirationEl = document.getElementById("expiration");
         if (data.expiration_date) {
-          // Use HubSpot UTC date and interpret it as midnight Eastern Time
-          const expirationUTC = new Date(data.expiration_date);
-          const expirationET = new Date(
-            expirationUTC.toLocaleString('en-US', { timeZone: 'America/New_York' })
-          );
+          // Use only the date part from the ISO string, no timezone shifting
+          const expirationDateString = data.expiration_date.split("T")[0];
+          const expirationDate = new Date(expirationDateString);
+          const todayDate = new Date();
+          todayDate.setHours(0, 0, 0, 0);
+          expirationDate.setHours(0, 0, 0, 0);
 
-          const todayET = new Date(
-            new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
-          );
-
-          expirationET.setHours(0, 0, 0, 0);
-          todayET.setHours(0, 0, 0, 0);
-
-          const formatted = expirationET.toLocaleDateString('en-US', {
+          const formatted = expirationDate.toLocaleDateString('en-US', {
             year: 'numeric',
             month: 'long',
             day: 'numeric'
           });
 
-          if (expirationET.getTime() === todayET.getTime()) {
+          if (expirationDate.getTime() === todayDate.getTime()) {
             expirationEl.classList.add("warning");
             expirationEl.innerText = `⚠️ These date options expire TODAY (${formatted}). Please respond immediately.`;
-          } else if (expirationET.getTime() < todayET.getTime()) {
+          } else if (expirationDate.getTime() < todayDate.getTime()) {
             expirationEl.classList.add("expired");
             expirationEl.innerText = `❌ These date options have expired (${formatted}). Please contact your rep to request new dates.`;
             expired = true;
