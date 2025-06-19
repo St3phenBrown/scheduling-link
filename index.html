@@ -41,6 +41,9 @@
   <p id="status"></p>
 
   <script>
+    // Helper to pad single digits
+    function pad(n) { return n < 10 ? '0' + n : n; }
+
     async function loadDates() {
       const params = new URLSearchParams(window.location.search);
       const dealId = params.get("dealid");
@@ -58,23 +61,23 @@
         let expired = false;
         const expirationEl = document.getElementById("expiration");
         if (data.expiration_date) {
-          // Use only the date part from the ISO string, no timezone shifting
-          const expirationDateString = data.expiration_date.split("T")[0];
-          const expirationDate = new Date(expirationDateString);
-          const todayDate = new Date();
-          todayDate.setHours(0, 0, 0, 0);
-          expirationDate.setHours(0, 0, 0, 0);
+          // Extract YYYY-MM-DD directly
+          const expirationDateOnly = data.expiration_date.split("T")[0];
 
-          const formatted = expirationDate.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+          // Compute today's local date in same format
+          const now = new Date();
+          const todayDateOnly = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+
+          // Format for user display
+          const [y, m, d] = expirationDateOnly.split('-');
+          const formatted = new Date(y, m - 1, d).toLocaleDateString('en-US', {
+            year: 'numeric', month: 'long', day: 'numeric'
           });
 
-          if (expirationDate.getTime() === todayDate.getTime()) {
+          if (expirationDateOnly === todayDateOnly) {
             expirationEl.classList.add("warning");
             expirationEl.innerText = `⚠️ These date options expire TODAY (${formatted}). Please respond immediately.`;
-          } else if (expirationDate.getTime() < todayDate.getTime()) {
+          } else if (expirationDateOnly < todayDateOnly) {
             expirationEl.classList.add("expired");
             expirationEl.innerText = `❌ These date options have expired (${formatted}). Please contact your rep to request new dates.`;
             expired = true;
@@ -85,16 +88,15 @@
           expirationEl.style.display = "none";
         }
 
+        // Render date buttons
         const container = document.getElementById("dates");
         container.innerHTML = "";
-
-        ["date_offered_1", "date_offered_2", "date_offered_3"].forEach((key) => {
+        ["date_offered_1", "date_offered_2", "date_offered_3"].forEach(key => {
           const val = data[key];
           if (val) {
-            const dateOnly = val.split("T")[0];
-            const btn = document.createElement("button");
+            const dateOnly = val.split('T')[0];
+            const btn = document.createElement('button');
             btn.innerText = dateOnly;
-
             if (expired) {
               btn.disabled = true;
               btn.title = "These dates have expired.";
@@ -103,64 +105,54 @@
             } else {
               btn.onclick = () => submitSelection(key, dealId);
             }
-
             container.appendChild(btn);
           }
         });
 
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.id = "noneCheckbox";
+        // None-of-these checkbox + comments
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox'; checkbox.id = 'noneCheckbox';
         checkbox.onchange = () => {
-          document.getElementById("commentsBox").style.display =
-            checkbox.checked ? "block" : "none";
+          document.getElementById('commentsBox').style.display =
+            checkbox.checked ? 'block' : 'none';
         };
         container.appendChild(checkbox);
-
-        const label = document.createElement("label");
-        label.htmlFor = "noneCheckbox";
-        label.innerText = " None of these dates work";
+        const label = document.createElement('label');
+        label.htmlFor = 'noneCheckbox'; label.innerText = ' None of these dates work';
         container.appendChild(label);
-
-        const commentsBox = document.createElement("div");
-        commentsBox.id = "commentsBox";
-        commentsBox.style.display = "none";
-
-        const comments = document.createElement("textarea");
-        comments.id = "comments";
-        comments.placeholder = "Enter your preferred dates...";
+        const commentsBox = document.createElement('div');
+        commentsBox.id = 'commentsBox'; commentsBox.style.display = 'none';
+        const comments = document.createElement('textarea');
+        comments.id = 'comments'; comments.placeholder = 'Enter your preferred dates...';
         commentsBox.appendChild(comments);
-
-        const submitBtn = document.createElement("button");
-        submitBtn.innerText = "Submit Preferences";
-        submitBtn.onclick = () => submitSelection("none", dealId);
+        const submitBtn = document.createElement('button');
+        submitBtn.innerText = 'Submit Preferences';
+        submitBtn.onclick = () => submitSelection('none', dealId);
         commentsBox.appendChild(submitBtn);
-
         container.appendChild(commentsBox);
+
       } catch (err) {
-        console.error("✖ Error loading date options:", err);
-        document.getElementById("dates").innerText = "Error loading date options.";
+        console.error('✖ Error loading date options:', err);
+        document.getElementById('dates').innerText = 'Error loading date options.';
       }
     }
 
     async function submitSelection(selectedProperty, dealId) {
       const payload = { dealId, selectedProperty };
-      if (selectedProperty === "none") {
-        payload.customerComment = document.getElementById("comments").value.trim();
+      if (selectedProperty === 'none') {
+        payload.customerComment = document.getElementById('comments').value.trim();
       }
-
       try {
-        const response = await fetch("/api/submit-scheduler", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+        const res = await fetch('/api/submit-scheduler', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
         });
-        if (!response.ok) throw new Error("Failed to submit");
-        alert("Thank you! Your selection has been submitted.");
+        if (!res.ok) throw new Error('Failed to submit');
+        alert('Thank you! Your selection has been submitted.');
         window.location.reload();
       } catch (err) {
-        console.error("✖ Submission error:", err);
-        document.getElementById("status").innerText = "Error submitting. Contact support.";
+        console.error('✖ Submission error:', err);
+        document.getElementById('status').innerText = 'Error submitting. Contact support.';
       }
     }
 
