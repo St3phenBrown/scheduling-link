@@ -149,7 +149,12 @@
         });
         if (!res.ok) throw new Error('Failed to submit');
         alert('Thank you! Your selection has been submitted.');
-        window.location.reload();
+
+        // ← Redirect to mhdhealth.com after 3 seconds
+        setTimeout(() => {
+          window.location.href = "https://mhdhealth.com";
+        }, 3000);
+
       } catch (err) {
         console.error('✖ Submission error:', err);
         document.getElementById('status').innerText = 'Error submitting. Contact support.';
